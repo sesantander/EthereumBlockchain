@@ -45,9 +45,7 @@ App = {
   loadAccount: async () => {
     // Set the current blockchain account
     App.account = web3.eth.accounts[0]
-    //console.log(App.account)
   },
-
   loadContract: async () => {
     // Create a JavaScript version of the smart contract
     const todoList = await $.getJSON('TodoList.json')
@@ -59,18 +57,20 @@ App = {
     // Hydrate the smart contract with values from the blockchain
     App.todoList = await App.contracts.TodoList.deployed()
   },
-
+  
   render: async () => {
     // Prevent double render
-    // if (App.loading) {
-    //   return
-    // }
+    if (App.loading) {
+      return
+    }
 
     // Update app loading state
-    //App.setLoading(true)
+    App.setLoading(true)
     // Render Account
     $('#account').html(App.account)
-
+    // Render Smart Contract Balance
+    let balance = await App.todoList.showBalance()
+    $('#balance').html( `Smart Contract Balance : ${balance?.c[0]/10000}.00 ETH`)
     // Render Tasks
     await App.renderTasks()
 
@@ -90,14 +90,15 @@ App = {
       const taskId = task[0].toNumber()
       const taskContent = task[1]
       const taskCompleted = task[2]
+      const taskReward = task[3]
 
       // Create the html for the task
       const $newTaskTemplate = $taskTemplate.clone()
-      $newTaskTemplate.find('.content').html(taskContent)
+      $newTaskTemplate.find('.content').html(taskContent + ' - ' + taskReward)
       $newTaskTemplate.find('input')
                       .prop('name', taskId)
                       .prop('checked', taskCompleted)
-                      .on('click', App.toggleCompleted)
+                      .on('click', App.marked)
 
       // Put the task in the correct list
       if (taskCompleted) {
@@ -110,33 +111,38 @@ App = {
       $newTaskTemplate.show()
     }
   },
-
-  createTask: async () => {
-    App.setLoading(true)
-
+  depositEth: async () => {
+    
     await web3.eth.sendTransaction({
       from: '0xc8Df9C0bF5A503FB1E0eE982f52403CDeA30f1E5',
-      to: '0x3AA34CF74E36f07cdC0a1bB584B7AaF105F9f930', 
+      to: '0xe7ca6742E9584fCF4C779A0e3Bb0ACe21116f5a7', 
       value: web3.toWei(2, "ether"), 
-    }, function(err, transactionHash) {
+    }, async function(err, transactionHash) {
         if (err) { 
-            console.log("este es el error",err); 
+            console.log("Error: ",err); 
         } else {
-            console.log("AHSDHAHDA",transactionHash);
+            console.log("Transaction Hash", transactionHash);
         }
     });
 
+  },
+  createTask: async () => {
+    App.setLoading(true)
     const content = $('#newTask').val()
-    // await App.todoList.createTask(content)
-    await App.todoList.sendEther('0x1f6dbDAda7a1BB3F13640936a984fDBcc1786292')
-    // await App.todoList.showBalance()
-    //window.location.reload()
+    const rewardValue = $('#reward').val()
+    await App.todoList.createTask(content,rewardValue)
+    window.location.reload()
   },
 
-  toggleCompleted: async (e) => {
+  marked: async (e) => {
     App.setLoading(true)
     const taskId = e.target.name
+    let rewardValue = await App.todoList.getTaskReward(taskId)
+
     await App.todoList.toggleCompleted(taskId)
+    
+    await App.todoList.sendEther('0xc8Df9C0bF5A503FB1E0eE982f52403CDeA30f1E5',rewardValue)
+    
     window.location.reload()
   },
 

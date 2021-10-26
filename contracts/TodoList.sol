@@ -9,62 +9,53 @@ contract TodoList {
     struct Task {
         uint256 id;
         string content;
-        bool completed;  
+        bool completed;
+        uint reward;
     }
 
-    event TaskCompleted(
-        uint id,
-        bool completed
-    );
+    event TaskCompleted(uint256 id, bool completed);
 
     // creamos la estructura de datos para guardar nuestros tasks, este funciona como hash map
     mapping(uint256 => Task) public tasks;
 
-    event TaskCreated(uint256 id, string content, bool completed);
+    event TaskCreated(uint256 id, string content, bool completed, uint reward);
 
     constructor() public {
-        //owner = payable(msg.sender);
-        createTask("First task");
+      createTask("First task",1);
     }
 
     // funcion para guardar tasks dentro del mapping
-     function createTask(string memory _content) public {
-    taskCount ++;
-    tasks[taskCount] = Task(taskCount, _content, false);
-    emit TaskCreated(taskCount, _content, false);
-  }
+    function createTask(string memory _content, uint _reward) public {
+      taskCount++;
+      tasks[taskCount] = Task(taskCount, _content, false, _reward);
+      emit TaskCreated(taskCount, _content, false, _reward);
+    }
 
-  function toggleCompleted(uint _id) public {
-    Task memory _task = tasks[_id];
-    _task.completed = !_task.completed;
-    tasks[_id] = _task;
-    emit TaskCompleted(_id, _task.completed);
-  }
+    function toggleCompleted(uint256 _id) public {
+      Task memory _task = tasks[_id];
+      _task.completed = !_task.completed;
+      tasks[_id] = _task;
+      emit TaskCompleted(_id, _task.completed);
+    }
 
-  // function earnForTask() public payable {
-  //     //address payable x = payable(address(msg.sender));
-  //     uint256 amount = 1;
-  //     msg.sender.transfer(amount);  
+    function sendEther(address payable recipient, uint reward) external {
+      uint money = reward * 1 ether;
+      recipient.transfer(money);
+    }
 
-  // }
-  function sendEther(address payable recipient) external {
-    recipient.transfer(1 ether);
-    // transfer 1 ether from this smart contract to recipient
-  }
-  // function sendViaTransfer(address payable _to) public payable {
-  //       // This function is no longer recommended for sending Ether.
-  //       _to.transfer(msg.value);
-  //   }
-  
-  //function recieveEther() payable public{}
-  // function recieveEther() external payable {
-  //   functionCalled = 'recieveEther';
-  // }
+    function getTaskReward(uint256 _id) external view returns(uint){
+      Task memory _task = tasks[_id];
+      return _task.reward;
+    }
 
-  function () external payable {
-  }
-  function showBalance() external view returns(uint){
-    return address(this).balance;
-  }
-  
+    //function recieveEther() payable public{}
+    // function recieveEther() external payable {
+    //   functionCalled = 'recieveEther';
+    // }
+
+    function() external payable {}
+
+    function showBalance() external view returns (uint256) {
+      return address(this).balance;
+    }
 }
